@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dictionary-app
+  labels:
+    serviceId: dictionary-app
+spec:
+  selector:
+    matchLabels:
+      serviceId: dictionary-app
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        # The serviceId label is used to identify the service to Orleans
+        serviceId: dictionary-app
+
+        # The clusterId label is used to identify an instance of a cluster to Orleans.
+        # Typically, this will be the same value as serviceId or any fixed value.
+        # In cases where you are not using rolling deployments (for example, blue/green deployments),
+        # this value can allow for distinct clusters which do not communicate directly with each others,
+        # but which still share the same storage and other resources.
+        clusterId: dictionary-app
+    spec:
+      containers:
+        - name: main
+          image: reuben.azurecr.io/dictionary-app
+          imagePullPolicy: Always
+          ports:
+          # Define the ports which Orleans uses
+          - containerPort: 11111
+          - containerPort: 30000
+          env:
+          # The Azure Storage connection string for clustering is injected as an environment variable
+          # It must be created separately using a command such as:
+          # > kubectl create secret generic az-storage-acct --from-file=key=./az-storage-acct.txt
+          - name: STORAGE_CONNECTION_STRING
+            valueFrom:
+              secretKeyRef:
+                name: az-storage-acct
+                key: key
+          # Configure settings to let Orleans know which cluster it belongs to and which pod it is running in
+          - name: ORLEANS_SERVICE_ID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.labels['serviceId']
+          - name: ORLEANS_CLUSTER_ID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.labels['clusterId']
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: DOTNET_SHUTDOWNTIMEOUTSECONDS
+            value: "120"
+          request:
+            # Set resource requests
+      terminationGracePeriodSeconds: 180
+      imagePullSecrets:
+        - name: reuben-acr
+  minReadySeconds: 60
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
