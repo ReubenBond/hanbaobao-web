@@ -6,6 +6,7 @@
     "build": "vite build"
   },
   "dependencies": {
+    "pinyin-tone": "^2.0.3",
     "vue": "^3.0.4",
     "vuex": "^4.0.0-rc.2"
   },
