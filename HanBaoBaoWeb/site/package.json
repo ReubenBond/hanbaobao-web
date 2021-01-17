@@ -6,7 +6,8 @@
     "build": "vite build"
   },
   "dependencies": {
-    "vue": "^3.0.4"
+    "vue": "^3.0.4",
+    "vuex": "^4.0.0-rc.2"
   },
   "devDependencies": {
     "@vue/compiler-sfc": "^3.0.4",

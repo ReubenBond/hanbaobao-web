@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace DictionaryApp
 {
     internal class TermDefinition
     {
+        public long Id { get; set; }
         public string Simplified { get; set; }
         public string Traditional { get; set; }
         public string Pinyin { get; set; }
@@ -16,7 +18,7 @@ namespace DictionaryApp
         public string ParentTopic { get; set; }
         public string Notes { get; set; }
         public double Frequency { get; set; }
-        public long PartOfSpeech { get; set; }
+        public List<string> PartOfSpeech { get; set; }
 
         public string ToDisplayString()
         {
@@ -32,7 +34,7 @@ namespace DictionaryApp
             //if (ParentTopic is { Length: > 0 }) result.Append($"Parent Topic: {ParentTopic} ");
             // if (Notes is { Length: > 0 }) result.Append($"Notes: {Notes} ");
             if (Math.Abs(Frequency) > double.Epsilon) result.Append($"Frequency: {Frequency} ");
-            if (PartOfSpeech != 0) foreach (var pos in ReferenceDataService.PartOfSpeechToStrings(PartOfSpeech)) result.Append($" {pos}");
+            if (PartOfSpeech is { Count: > 0 }) foreach (var pos in PartOfSpeech) result.Append($" {pos}");
             return result.ToString();
         }
     }

@@ -1,10 +1,13 @@
 ﻿using DictionaryApp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using Orleans.Configuration;
 using Orleans.Hosting;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 var dataService = new ReferenceDataService();
 Console.WriteLine("Lookup: 你好");
@@ -12,7 +15,14 @@ PrintAll(await dataService.QueryByAnyAsync("你好"));
 Console.WriteLine();
     
 Console.WriteLine("Reverse lookup: hello");
-PrintAll(await dataService.QueryByAnyAsync("hello"));
+var results = await dataService.QueryByAnyAsync("hello");
+PrintAll(results);
+
+var settings = new JsonSerializerSettings
+{
+    ContractResolver = new CamelCasePropertyNamesContractResolver()
+};
+File.WriteAllText("out.json", JsonConvert.SerializeObject(results, Formatting.Indented, settings), System.Text.Encoding.UTF8);
 
 static void PrintAll(List<TermDefinition> definitions)
 {

@@ -76,6 +76,7 @@ namespace DictionaryApp
         {
             var schema = reader.GetColumnSchema();
 
+            int rowIdColId = reader.GetOrdinal("rowid");
             int simplifiedColId = reader.GetOrdinal("simplified");
             int traditionalColId = reader.GetOrdinal("traditional");
             int pinyinColId = reader.GetOrdinal("pinyin");
@@ -93,13 +94,14 @@ namespace DictionaryApp
             while (reader.Read())
             {
                 var result = new TermDefinition();
+                result.Id = reader.GetInt64(rowIdColId);
                 result.Simplified = reader.IsDBNull(simplifiedColId) ? null : reader.GetString(simplifiedColId);
                 result.Traditional = reader.IsDBNull(traditionalColId) ? null : reader.GetString(traditionalColId);
                 result.Pinyin = reader.IsDBNull(pinyinColId) ? null : reader.GetString(pinyinColId);
                 result.Definition = reader.IsDBNull(definitionColId) ? null : reader.GetString(definitionColId);
                 result.Classifier = reader.IsDBNull(classifierColId) ? null : reader.GetString(classifierColId);
                 result.HskLevel = reader.IsDBNull(hskLevelColId) ? 0 : reader.GetInt32(hskLevelColId);
-                result.PartOfSpeech = reader.IsDBNull(posColId) ? 0 : reader.GetInt64(posColId);
+                result.PartOfSpeech = reader.IsDBNull(posColId) ? null : PartOfSpeechToStrings(reader.GetInt64(posColId));
                 result.Frequency = reader.IsDBNull(frequencyColId) ? 0 : reader.GetDouble(frequencyColId);
                 result.Concept = reader.IsDBNull(conceptColId) ? null : reader.GetString(conceptColId);
                 result.Topic = reader.IsDBNull(topicColId) ? null : reader.GetString(topicColId);
