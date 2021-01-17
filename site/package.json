@@ -1,0 +1,21 @@
+{
+  "name": "wwwroot",
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite --config ./vite.config.js",
+    "build": "vite build --config ./vite.config.js --emptyOutDir"
+  },
+  "dependencies": {
+    "@vitejs/plugin-vue": "^1.0.6",
+    "axios": "^0.21.1",
+    "bootstrap-icons": "^1.3.0",
+    "pinyin-tone": "^2.0.3",
+    "vue": "^3.0.4",
+    "vue-router": "^4.0.3",
+    "vuex": "^4.0.0-rc.2"
+  },
+  "devDependencies": {
+    "@vue/compiler-sfc": "^3.0.4",
+    "vite": "^2.0.0-beta.35"
+  }
+}
