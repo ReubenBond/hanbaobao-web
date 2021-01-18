@@ -1,6 +1,6 @@
 <template>
   <div class="container entry-card-editing m-1 card">
-    <form class="p-1 m-1 card-body">
+    <form class="p-1 m-1 card-body" @submit.prevent="save">
       <h4 class="card-title">Edit entry</h4>
       <div class="form-row">
         <div class="col-3">
@@ -67,8 +67,8 @@
         <small>Select all that apply.</small>
       </div>
       <div class="form-row justify-content-center">
-          <button type="submit" class="btn btn-secondary m-2" @click="cancel">Cancel</button>
-          <button type="submit" class="btn btn-primary m-2" @click="save">Save</button>
+          <button class="btn btn-secondary m-2" @click="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary m-2">Save</button>
       </div>
     </form>
   </div>

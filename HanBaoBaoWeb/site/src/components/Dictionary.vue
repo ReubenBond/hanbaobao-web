@@ -18,6 +18,9 @@ export default {
     SearchBox,
     EntriesContainer
   },
+  mounted() {
+      this.$store.dispatch('search')
+  },
   methods: {
   },
   computed: {

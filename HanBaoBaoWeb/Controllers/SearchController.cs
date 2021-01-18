@@ -23,8 +23,9 @@ namespace HanBaoBaoWeb
                 return BadRequest("Provided an empty query");
             }
 
-            var resultsGrain = _grainFactory.GetGrain<ISearchGrain>(query);
-            var results = await resultsGrain.GetSearchResultsAsync();
+            // Get a grain identified by the query string and ask for its search results
+            var searchGrain = _grainFactory.GetGrain<ISearchGrain>(query);
+            var results = await searchGrain.GetSearchResultsAsync();
             return Ok(results);
         }
     }
