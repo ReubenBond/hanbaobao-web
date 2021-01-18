@@ -273,17 +273,37 @@ const store = createStore({
     state () {
         return {
             searchQuery: '你好',
-            searchResults: sampleData
+            searchResults: sampleData,
+            editingEntry: { simplified: 'hi' } 
         }
     },
     mutations: {
-        search(state, query) {
+        setSearchQuery(state, query) {
+            state.searchQuery = query
+        },
+        setEditing(state, entry) {
+            if (state.editingEntry) {
+                state.editingEntry.editing = false;
+                state.editingEntry = null;
+                // should commit or abort the existing edit here
+            }
+
+            entry.editing = true
+            state.editingEntry = entry 
+        }
+    },
+    actions: {
+        search(context, query) {
             state.searchQuery = query;
+        },
+        addOrEdit(context, entry) {
+            this.commit('setEditing', entry)
         }
     },
     getters: {
         searchQuery:  (state, getters) => { return getters.searchQuery },
-        searchResults:  (state, getters) => { return getters.searchResults }
+        searchResults:  (state, getters) => { return getters.searchResults },
+        editingEntry: (state, getters) => { return getters.editingEntry }
     }
 })
 

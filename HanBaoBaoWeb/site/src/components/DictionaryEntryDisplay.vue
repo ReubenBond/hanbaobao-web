@@ -5,10 +5,9 @@
         <div class="m-1">
           <h1 class="">{{ entry.simplified }} </h1>
           <h6 class="text-muted">{{ convertPinyin(entry.pinyin) }}</h6>
-          <!--<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>-->
         </div>
       </div>
-      <div class="col-10">
+      <div class="col-9">
         <p>
           {{ entry.definition }}
         </p>
@@ -26,6 +25,10 @@
           <span class="badge m-1 topic-badge" v-if="entry.topic && entry.parentTopic">{{ entry.parentTopic }} > {{ entry.topic }}</span>
         </div>
       </div>
+      <div class="col-1">
+        <div class="container">
+        <button class="btn btn-light" @click="$store.dispatch('addOrEdit', entry)">✏</button>
+      </div>
     </div>
   </div>
 </template>
@@ -34,7 +37,7 @@
 import { PinyinConverter } from '../pinyin_converter.js' 
 
 export default {
-  name: 'DictionaryEntry',
+  name: 'DictionaryEntryDisplay',
   props: {
     entry: {}
   },
