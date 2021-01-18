@@ -1,40 +1,13 @@
 ﻿using DictionaryApp;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using Orleans.Configuration;
 using Orleans.Hosting;
 using System;
-using System.Collections.Generic;
-using System.IO;
 
-var dataService = new ReferenceDataService();
-Console.WriteLine("Lookup: 你好");
-PrintAll(await dataService.QueryByAnyAsync("你好"));
-Console.WriteLine();
-    
-Console.WriteLine("Reverse lookup: hello");
-var results = await dataService.QueryByAnyAsync("hello");
-PrintAll(results);
-
-var settings = new JsonSerializerSettings
-{
-    ContractResolver = new CamelCasePropertyNamesContractResolver()
-};
-File.WriteAllText("out.json", JsonConvert.SerializeObject(results, Formatting.Indented, settings), System.Text.Encoding.UTF8);
-
-static void PrintAll(List<TermDefinition> definitions)
-{
-    int index = 1;
-    foreach (var definition in definitions)
-    {
-        Console.WriteLine($"[{index++}] " + definition.ToDisplayString());
-    }
-}
-
-
-/*
 var storageConnectionString = "UseDevelopmentStorage=true";// Environment.GetEnvironmentVariable("STORAGE_CONNECTION_STRING");
 
 await Host.CreateDefaultBuilder()
@@ -44,7 +17,28 @@ await Host.CreateDefaultBuilder()
         siloBuilder.Configure<ClusterOptions>(clusterOptions => clusterOptions.ClusterId = clusterOptions.ServiceId = "dictapp");
         siloBuilder.ConfigureEndpoints(11111, 30000, listenOnAnyHostAddress: true);
         siloBuilder.UseAzureStorageClustering(options => options.ConnectionString = storageConnectionString);
-        siloBuilder.AddRedisGrainStorage("definitions", redisOptions => redisOptions.DataConnectionString = storageConnectionString);
+        siloBuilder.AddAzureBlobGrainStorage("definitions", options => options.ConnectionString = storageConnectionString);
+        //siloBuilder.AddRedisGrainStorage("definitions", redisOptions => redisOptions.DataConnectionString = storageConnectionString);
+    })
+    .ConfigureWebHostDefaults(webBuilder =>
+    {
+        webBuilder.ConfigureServices(services => services.AddControllers());
+        webBuilder.Configure((context, app) =>
+        {
+            var env = context.HostingEnvironment;
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
+
+            app.UseHttpsRedirection();
+            app.UseRouting();
+            app.UseAuthorization();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
+        });
     })
     .ConfigureServices(services =>
     {
@@ -52,4 +46,3 @@ await Host.CreateDefaultBuilder()
         services.Configure<HostOptions>(options => options.ShutdownTimeout = TimeSpan.FromMinutes(2));
     })
     .RunConsoleAsync();
-*/

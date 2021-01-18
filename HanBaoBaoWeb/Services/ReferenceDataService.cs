@@ -1,22 +1,61 @@
 ﻿using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Data.Common;
 using System.Data.SQLite;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.Unicode;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DictionaryApp
 {
-    internal class ReferenceDataService
+    /// <summary>
+    /// Accesses a set of reference data, which has been pre-computed from a variety of sources.
+    /// For more information, <see href="https://github.com/ReubenBond/HanBaoBao"/>.
+    /// </summary>
+    /// <remarks>
+    /// In other services, reference data would be directly imported into the grain's backing store.
+    /// Even still, a separate service such as Solr or ElasticSearch would be used to perform full-text-search.
+    /// For this simple dictionary application, this simple approach is appropriate.
+    /// </remarks>
+    public class ReferenceDataService
     {
         private readonly string _connectionString;
+        private readonly TaskScheduler _scheduler;
         private const string Ordering = "hsk_level not null desc, hsk_level asc, part_of_speech not null desc, frequency desc";
 
         public ReferenceDataService()
         {
-            _connectionString = "Data Source=Data/hanbaobao.db;Version=3";
+            _connectionString = "Data Source=Data/hanbaobao.db;Version=3;Pooling=True;Max Pool Size=100;Read Only=True;";
+            var connectionString = new SQLiteConnectionStringBuilder("Data Source=Data/hanbaobao.db;Version=3;Pooling=True;Max Pool Size=100;");
+            /*
+            connectionString.DefaultIsolationLevel = System.Data.IsolationLevel.ReadCommitted;
+            connectionString.ReadOnly = true;
+            connectionString.Enlist = false;
+            connectionString.Flags = SQLiteConnectionFlags.
+            */
+            _scheduler = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default, maxConcurrencyLevel: 1).ExclusiveScheduler;
+        }
+
+        public Task<List<string>> QueryHeadwordsByAnyAsync(string query)
+        {
+            // Why are we scheduling the database calls on a specific TaskScheduler?
+            // The answer is centered around SQLite being a synchronous library and performs blocking IO operations.
+            // There are asynchronous overloads, but they call the synchronous methods internally.
+            // By running many blocking IO operations on the .NET Thread Pool in parallel, we can starve the pool and cause severe performance
+            // degradation, which can result in a denial of service.
+            // A better approach for handling a synchronous library like this would be to have a dedicated pool of threads, rather than borrowing
+            // ThreadPool threads like this implementation does.
+            return Task.Factory.StartNew(() =>
+            {
+                if (IsProbablyCjk(query))
+                {
+                    return QueryHeadwordByHeadword(query);
+                }
+
+                return QueryHeadwordByDefinition(query);
+            },
+            CancellationToken.None,
+            TaskCreationOptions.RunContinuationsAsynchronously,
+            _scheduler);  
         }
 
         public Task<List<TermDefinition>> QueryByAnyAsync(string query)
@@ -26,29 +65,64 @@ namespace DictionaryApp
                 return QueryByHeadwordAsync(query);
             }
 
-            return QueryByDefinitionAsync(query);
+            return Task.Factory.StartNew(() =>
+            {
+                return QueryByDefinition(query);
+            },
+            CancellationToken.None,
+            TaskCreationOptions.RunContinuationsAsynchronously,
+            _scheduler);  
         }
 
-        public async Task<List<TermDefinition>> QueryByHeadwordAsync(string query)
+        public Task<List<TermDefinition>> QueryByHeadwordAsync(string query)
+        {
+            return Task.Factory.StartNew(() =>
+            {
+                using var connection = new SQLiteConnection(_connectionString);
+                connection.Open();
+
+                var cmd = new SQLiteCommand("select * from dictionary where simplified=$term or traditional=$term order by " + Ordering, connection);
+                cmd.Parameters.AddWithValue("$term", query);
+                cmd.Prepare();
+
+                var reader = cmd.ExecuteReader();
+                return ReadAllAsTermDefinition(reader);
+            },
+            CancellationToken.None,
+            TaskCreationOptions.RunContinuationsAsynchronously,
+            _scheduler);  
+        }
+
+        private List<string> QueryHeadwordByHeadword(string query)
         {
             using var connection = new SQLiteConnection(_connectionString);
-            await connection.OpenAsync();
-
-            var cmd = new SQLiteCommand("select * from dictionary where simplified=$term or traditional=$term order by " + Ordering, connection);
+            using var cmd = new SQLiteCommand("select simplified from dictionary where simplified=$term or traditional=$term order by " + Ordering, connection);
+            connection.Open();
             cmd.Parameters.AddWithValue("$term", query);
-            var reader = await cmd.ExecuteReaderAsync();
-            return ReadAllAsTermDefinition(reader);
+            var reader = cmd.ExecuteReader(System.Data.CommandBehavior.CloseConnection);
+            return ReadHeadwords(reader);
         }
 
-        public async Task<List<TermDefinition>> QueryByDefinitionAsync(string query)
+        private List<string> QueryHeadwordByDefinition(string query)
         {
             using var connection = new SQLiteConnection(_connectionString);
-            await connection.OpenAsync();
-
-            var cmd = new SQLiteCommand("select * from dictionary where rowid in (select rowid from fts_definition where fts_definition match $query) order by " + Ordering, connection);
+            using var cmd = new SQLiteCommand("select simplified from dictionary where rowid in (select rowid from fts_definition where fts_definition match $query) order by " + Ordering, connection);
+            connection.Open();
             cmd.Parameters.AddWithValue("$query", query);
 
-            var reader = await cmd.ExecuteReaderAsync();
+            var reader = cmd.ExecuteReader();
+            return ReadHeadwords(reader);
+        }
+
+        private List<TermDefinition> QueryByDefinition(string query)
+        {
+            using var connection = new SQLiteConnection(_connectionString);
+            connection.Open();
+
+            using var cmd = new SQLiteCommand("select * from dictionary where rowid in (select rowid from fts_definition where fts_definition match $query) order by " + Ordering, connection);
+            cmd.Parameters.AddWithValue("$query", query);
+
+            var reader = cmd.ExecuteReader();
             return ReadAllAsTermDefinition(reader);
         }
 
@@ -72,10 +146,24 @@ namespace DictionaryApp
             }
         }
 
+        private static List<string> ReadHeadwords(DbDataReader reader)
+        {
+            int simplifiedColId = reader.GetOrdinal("simplified");
+
+            var results = new List<string>();
+            while (reader.Read())
+            {
+                if (!reader.IsDBNull(simplifiedColId))
+                {
+                    results.Add(reader.GetString(simplifiedColId));
+                }
+            }
+
+            return results;
+        }
+
         private static List<TermDefinition> ReadAllAsTermDefinition(DbDataReader reader)
         {
-            var schema = reader.GetColumnSchema();
-
             int rowIdColId = reader.GetOrdinal("rowid");
             int simplifiedColId = reader.GetOrdinal("simplified");
             int traditionalColId = reader.GetOrdinal("traditional");
@@ -116,66 +204,212 @@ namespace DictionaryApp
         public static List<string> PartOfSpeechToStrings(long input)
         {
             List<string> result = new List<string>();
-            if ((input & ((long)1)) != 0) result.Add("ADDRESS");
-            if ((input & (((long)1 << 1))) != 0) result.Add("ADJECTIVE");
-            if ((input & ((long)1 << 2)) != 0) result.Add("ADVERB");
-            if ((input & ((long)1 << 3)) != 0) result.Add("AUXILIARY VERB");
-            if ((input & ((long)1 << 4)) != 0) result.Add("BOUND MORPHEME");
-            if ((input & ((long)1 << 5)) != 0) result.Add("SET PHRASE");
-            if ((input & ((long)1 << 6)) != 0) result.Add("CITY");
-            if ((input & ((long)1 << 7)) != 0) result.Add("COMPLEMENT");
-            if ((input & ((long)1 << 8)) != 0) result.Add("CONJUNCTION");
-            if ((input & ((long)1 << 9)) != 0) result.Add("COUNTRY");
-            if ((input & ((long)1 << 10)) != 0) result.Add("DATE");
-            if ((input & ((long)1 << 11)) != 0) result.Add("DETERMINER");
-            if ((input & ((long)1 << 12)) != 0) result.Add("DIRECTIONAL");
-            if ((input & ((long)1 << 13)) != 0) result.Add("EXPRESSION");
-            if ((input & ((long)1 << 14)) != 0) result.Add("FOREIGN TERM");
-            if ((input & ((long)1 << 15)) != 0) result.Add("GEOGRAPHY");
-            if ((input & ((long)1 << 16)) != 0) result.Add("IDIOM");
-            if ((input & ((long)1 << 17)) != 0) result.Add("INTERJECTION");
-            if ((input & ((long)1 << 18)) != 0) result.Add("MEASURE WORD");
-            if ((input & ((long)1 << 19)) != 0) result.Add("MEASUREMENT");
+            if ((input & ((long)1)) != 0)
+            {
+                result.Add("ADDRESS");
+            }
+
+            if ((input & (((long)1 << 1))) != 0)
+            {
+                result.Add("ADJECTIVE");
+            }
+
+            if ((input & ((long)1 << 2)) != 0)
+            {
+                result.Add("ADVERB");
+            }
+
+            if ((input & ((long)1 << 3)) != 0)
+            {
+                result.Add("AUXILIARY VERB");
+            }
+
+            if ((input & ((long)1 << 4)) != 0)
+            {
+                result.Add("BOUND MORPHEME");
+            }
+
+            if ((input & ((long)1 << 5)) != 0)
+            {
+                result.Add("SET PHRASE");
+            }
+
+            if ((input & ((long)1 << 6)) != 0)
+            {
+                result.Add("CITY");
+            }
+
+            if ((input & ((long)1 << 7)) != 0)
+            {
+                result.Add("COMPLEMENT");
+            }
+
+            if ((input & ((long)1 << 8)) != 0)
+            {
+                result.Add("CONJUNCTION");
+            }
+
+            if ((input & ((long)1 << 9)) != 0)
+            {
+                result.Add("COUNTRY");
+            }
+
+            if ((input & ((long)1 << 10)) != 0)
+            {
+                result.Add("DATE");
+            }
+
+            if ((input & ((long)1 << 11)) != 0)
+            {
+                result.Add("DETERMINER");
+            }
+
+            if ((input & ((long)1 << 12)) != 0)
+            {
+                result.Add("DIRECTIONAL");
+            }
+
+            if ((input & ((long)1 << 13)) != 0)
+            {
+                result.Add("EXPRESSION");
+            }
+
+            if ((input & ((long)1 << 14)) != 0)
+            {
+                result.Add("FOREIGN TERM");
+            }
+
+            if ((input & ((long)1 << 15)) != 0)
+            {
+                result.Add("GEOGRAPHY");
+            }
+
+            if ((input & ((long)1 << 16)) != 0)
+            {
+                result.Add("IDIOM");
+            }
+
+            if ((input & ((long)1 << 17)) != 0)
+            {
+                result.Add("INTERJECTION");
+            }
+
+            if ((input & ((long)1 << 18)) != 0)
+            {
+                result.Add("MEASURE WORD");
+            }
+
+            if ((input & ((long)1 << 19)) != 0)
+            {
+                result.Add("MEASUREMENT");
+            }
             //if ((input & ((long)1 << 20)) != 0) result.Add("NAME");
-            if ((input & ((long)1 << 20)) != 0 || (input & ((long)1 << 21)) != 0) result.Add("NOUN");
-            if ((input & ((long)1 << 22)) != 0) result.Add("NUMBER");
-            if ((input & ((long)1 << 23)) != 0) result.Add("NUMERAL");
-            if ((input & ((long)1 << 24)) != 0) result.Add("ONOMATOPOEIA");
-            if ((input & ((long)1 << 25)) != 0) result.Add("ORDINAL");
-            if ((input & ((long)1 << 26)) != 0) result.Add("ORGANIZATION");
-            if ((input & ((long)1 << 27)) != 0) result.Add("PARTICLE");
-            if ((input & ((long)1 << 28)) != 0) result.Add("PERSON");
-            if ((input & ((long)1 << 29)) != 0) result.Add("PHONETIC");
-            if ((input & ((long)1 << 30)) != 0) result.Add("PHRASE");
-            if ((input & ((long)1 << 31)) != 0) result.Add("PLACE");
-            if ((input & ((long)1 << 32)) != 0) result.Add("PREFIX");
-            if ((input & ((long)1 << 33)) != 0) result.Add("PREPOSITION");
-            if ((input & ((long)1 << 34)) != 0) result.Add("PRONOUN");
-            if ((input & ((long)1 << 35)) != 0) result.Add("PROPER NOUN");
-            if ((input & ((long)1 << 36)) != 0) result.Add("QUANTITY");
-            if ((input & ((long)1 << 37)) != 0) result.Add("RADICAL");
-            if ((input & ((long)1 << 38)) != 0) result.Add("SUFFIX");
-            if ((input & ((long)1 << 39)) != 0) result.Add("TEMPORAL");
-            if ((input & ((long)1 << 40)) != 0) result.Add("TIME");
-            if ((input & ((long)1 << 41)) != 0) result.Add("VERB");
+            if ((input & ((long)1 << 20)) != 0 || (input & ((long)1 << 21)) != 0)
+            {
+                result.Add("NOUN");
+            }
+
+            if ((input & ((long)1 << 22)) != 0)
+            {
+                result.Add("NUMBER");
+            }
+
+            if ((input & ((long)1 << 23)) != 0)
+            {
+                result.Add("NUMERAL");
+            }
+
+            if ((input & ((long)1 << 24)) != 0)
+            {
+                result.Add("ONOMATOPOEIA");
+            }
+
+            if ((input & ((long)1 << 25)) != 0)
+            {
+                result.Add("ORDINAL");
+            }
+
+            if ((input & ((long)1 << 26)) != 0)
+            {
+                result.Add("ORGANIZATION");
+            }
+
+            if ((input & ((long)1 << 27)) != 0)
+            {
+                result.Add("PARTICLE");
+            }
+
+            if ((input & ((long)1 << 28)) != 0)
+            {
+                result.Add("PERSON");
+            }
+
+            if ((input & ((long)1 << 29)) != 0)
+            {
+                result.Add("PHONETIC");
+            }
+
+            if ((input & ((long)1 << 30)) != 0)
+            {
+                result.Add("PHRASE");
+            }
+
+            if ((input & ((long)1 << 31)) != 0)
+            {
+                result.Add("PLACE");
+            }
+
+            if ((input & ((long)1 << 32)) != 0)
+            {
+                result.Add("PREFIX");
+            }
+
+            if ((input & ((long)1 << 33)) != 0)
+            {
+                result.Add("PREPOSITION");
+            }
+
+            if ((input & ((long)1 << 34)) != 0)
+            {
+                result.Add("PRONOUN");
+            }
+
+            if ((input & ((long)1 << 35)) != 0)
+            {
+                result.Add("PROPER NOUN");
+            }
+
+            if ((input & ((long)1 << 36)) != 0)
+            {
+                result.Add("QUANTITY");
+            }
+
+            if ((input & ((long)1 << 37)) != 0)
+            {
+                result.Add("RADICAL");
+            }
+
+            if ((input & ((long)1 << 38)) != 0)
+            {
+                result.Add("SUFFIX");
+            }
+
+            if ((input & ((long)1 << 39)) != 0)
+            {
+                result.Add("TEMPORAL");
+            }
+
+            if ((input & ((long)1 << 40)) != 0)
+            {
+                result.Add("TIME");
+            }
+
+            if ((input & ((long)1 << 41)) != 0)
+            {
+                result.Add("VERB");
+            }
+
             return result;
         }
-        /*
-         * CREATE TABLE dictionary (
-    rowid       INTEGER PRIMARY KEY AUTOINCREMENT,
-    simplified  TEXT,
-    traditional TEXT,
-    pinyin      TEXT,
-    definition  TEXT,
-    classifier  TEXT,
-    hsk_level	INTEGER,
-    part_of_speech BLOB,
-    frequency	REAL,
-    concept		TEXT,
-    topic		TEXT,
-    parent_topic	TEXT,
-    notes		TEXT
-)
-        */
     }
 }

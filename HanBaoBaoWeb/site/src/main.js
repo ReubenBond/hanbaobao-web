@@ -274,9 +274,30 @@ const store = createStore({
         return {
             searchQuery: '你好',
             searchResults: sampleData,
-            editingEntry: { simplified: 'hi' } 
-        }
-    },
+            editingEntry: {
+                "id": 28693,
+                "simplified": "好",
+                "traditional": "好",
+                "pinyin": "hao3",
+                "definition": "Good, well, proper, good to, easy to, very, so, (suffix indicating completion or readiness), (of two people) close, on intimate terms, (after a personal pronoun) hello",
+                "classifier": '',
+                "concept": '',
+                "hskLevel": 1,
+                "topic": '',
+                "parentTopic": '',
+                "notes": '',
+                "frequency": -2.4322826595601517,
+                "partOfSpeech": [
+                    "ADJECTIVE",
+                    "ADVERB",
+                    "INTERJECTION",
+                    "NOUN",
+                    "SUFFIX",
+                    "VERB"
+                    ]
+                }
+            } 
+        },
     mutations: {
         setSearchQuery(state, query) {
             state.searchQuery = query
