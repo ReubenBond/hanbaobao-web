@@ -5,10 +5,10 @@
     </div>
     <div class="row">
       <div class="col-12">
-        <button class="btn btn-primary">New definition</button>
+        <button class="btn btn-primary" @click="startNewEntry">New definition</button>
       </div>
     </div>
-    <div class="row">
+    <div class="row" v-if="$store.state.editingEntry">
       <DictionaryEntryEditor :entry="$store.state.editingEntry" />
     </div>
     <div class="row" v-for="entry in entries" :key="entry.id">
@@ -36,7 +36,7 @@ export default {
   },
   methods: {
     startNewEntry() {
-      this.$state.actions.addOrEdit({ id: -1});
+      this.$store.dispatch('addOrEdit', { id: -1, editing: true });
     }
   }
 }

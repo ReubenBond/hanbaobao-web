@@ -288,7 +288,10 @@ const store = createStore({
                 // should commit or abort the existing edit here
             }
 
-            entry.editing = true
+            if (entry) {
+                entry.editing = true
+            }
+
             state.editingEntry = entry 
         }
     },
@@ -298,7 +301,14 @@ const store = createStore({
         },
         addOrEdit(context, entry) {
             this.commit('setEditing', entry)
+        },
+        async write(context, entry) {
+            console.log("writing....")
+            console.log(entry)
+
+            await this.dispatch('addOrEdit', null)
         }
+
     },
     getters: {
         searchQuery:  (state, getters) => { return getters.searchQuery },

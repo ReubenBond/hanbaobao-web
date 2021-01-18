@@ -109,6 +109,7 @@ export default {
     },
     save() {
       //  console.log(this.entry)
+      this.$store.dispatch('write', this.entry);
     }
   },
   computed: {
