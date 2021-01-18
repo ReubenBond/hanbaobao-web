@@ -1,10 +1,7 @@
 ﻿using Orleans;
 using Orleans.Runtime;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace DictionaryApp
@@ -40,9 +37,8 @@ namespace DictionaryApp
 
                 if (result is { Count: > 0 } && result.FirstOrDefault() is TermDefinition definition)
                 {
+                    // Store the new state for next time
                     _state.State.Definition = definition;
-
-                    // Store the new state.
                     await _state.WriteStateAsync();
                 }
             }

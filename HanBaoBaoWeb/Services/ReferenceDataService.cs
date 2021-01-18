@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.Data.Sqlite;
+using System.Collections.Generic;
 using System.Data.Common;
-using System.Data.SQLite;
 using System.Text.Unicode;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,11 +8,6 @@ using System.Threading.Tasks;
 namespace DictionaryApp
 {
     /// <summary>
-    /// Accesses a set of reference data, which has been pre-computed from a variety of sources.
-    /// For more information, <see href="https://github.com/ReubenBond/HanBaoBao"/>.
-    /// </summary>
-    /// <remarks>
-    /// In other services, reference data would be directly imported into the grain's backing store.
     /// Even still, a separate service such as Solr or ElasticSearch would be used to perform full-text-search.
     /// For this simple dictionary application, this simple approach is appropriate.
     /// </remarks>
@@ -24,14 +19,13 @@ namespace DictionaryApp
 
         public ReferenceDataService()
         {
-            _connectionString = "Data Source=Data/hanbaobao.db;Version=3;Pooling=True;Max Pool Size=100;Read Only=True;";
-            var connectionString = new SQLiteConnectionStringBuilder("Data Source=Data/hanbaobao.db;Version=3;Pooling=True;Max Pool Size=100;");
-            /*
-            connectionString.DefaultIsolationLevel = System.Data.IsolationLevel.ReadCommitted;
-            connectionString.ReadOnly = true;
-            connectionString.Enlist = false;
-            connectionString.Flags = SQLiteConnectionFlags.
-            */
+            var builder = new SqliteConnectionStringBuilder("Data Source=Data/hanbaobao.db;")
+            {
+                Mode = SqliteOpenMode.ReadOnly,
+                Cache = SqliteCacheMode.Shared,
+            };
+
+            _connectionString = builder.ToString();
             _scheduler = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default, maxConcurrencyLevel: 1).ExclusiveScheduler;
         }
 
@@ -78,10 +72,9 @@ namespace DictionaryApp
         {
             return Task.Factory.StartNew(() =>
             {
-                using var connection = new SQLiteConnection(_connectionString);
+                using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
-
-                var cmd = new SQLiteCommand("select * from dictionary where simplified=$term or traditional=$term order by " + Ordering, connection);
+                var cmd = new SqliteCommand("select * from dictionary where simplified=$term or traditional=$term order by " + Ordering, connection);
                 cmd.Parameters.AddWithValue("$term", query);
                 cmd.Prepare();
 
@@ -95,8 +88,8 @@ namespace DictionaryApp
 
         private List<string> QueryHeadwordByHeadword(string query)
         {
-            using var connection = new SQLiteConnection(_connectionString);
-            using var cmd = new SQLiteCommand("select simplified from dictionary where simplified=$term or traditional=$term order by " + Ordering, connection);
+            using var connection = new SqliteConnection(_connectionString);
+            using var cmd = new SqliteCommand("select simplified from dictionary where simplified=$term or traditional=$term order by " + Ordering, connection);
             connection.Open();
             cmd.Parameters.AddWithValue("$term", query);
             var reader = cmd.ExecuteReader(System.Data.CommandBehavior.CloseConnection);
@@ -105,8 +98,8 @@ namespace DictionaryApp
 
         private List<string> QueryHeadwordByDefinition(string query)
         {
-            using var connection = new SQLiteConnection(_connectionString);
-            using var cmd = new SQLiteCommand("select simplified from dictionary where rowid in (select rowid from fts_definition where fts_definition match $query) order by " + Ordering, connection);
+            using var connection = new SqliteConnection(_connectionString);
+            using var cmd = new SqliteCommand("select simplified from dictionary where rowid in (select rowid from fts_definition where fts_definition match $query) order by " + Ordering, connection);
             connection.Open();
             cmd.Parameters.AddWithValue("$query", query);
 
@@ -116,10 +109,10 @@ namespace DictionaryApp
 
         private List<TermDefinition> QueryByDefinition(string query)
         {
-            using var connection = new SQLiteConnection(_connectionString);
+            using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
-            using var cmd = new SQLiteCommand("select * from dictionary where rowid in (select rowid from fts_definition where fts_definition match $query) order by " + Ordering, connection);
+            using var cmd = new SqliteCommand("select * from dictionary where rowid in (select rowid from fts_definition where fts_definition match $query) order by " + Ordering, connection);
             cmd.Parameters.AddWithValue("$query", query);
 
             var reader = cmd.ExecuteReader();

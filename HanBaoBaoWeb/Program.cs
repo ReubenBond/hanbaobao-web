@@ -25,13 +25,7 @@ await Host.CreateDefaultBuilder()
         webBuilder.ConfigureServices(services => services.AddControllers());
         webBuilder.Configure((context, app) =>
         {
-            var env = context.HostingEnvironment;
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-
-            app.UseHttpsRedirection();
+            app.UseDeveloperExceptionPage();
             app.UseRouting();
             app.UseAuthorization();
             app.UseEndpoints(endpoints =>

@@ -26,7 +26,6 @@
         </div>
       </div>
       <div class="col-1">
-        <div class="container">
         <button class="btn btn-light" @click="$store.dispatch('addOrEdit', entry)">✏</button>
       </div>
     </div>

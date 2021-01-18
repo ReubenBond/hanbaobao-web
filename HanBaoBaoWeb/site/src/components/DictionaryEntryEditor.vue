@@ -17,7 +17,7 @@
             <label for="definition">Traditional</label>
             <input type="text" class="form-control" v-model="entry.traditional">
             <small class="form-text text-muted">
-              The <em>Traditional Chinese<em> 漢字 representation of this term.
+              The <em>Traditional Chinese</em> 漢字 representation of this term.
             </small>
           </div>
         </div>

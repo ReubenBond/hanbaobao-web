@@ -6,9 +6,9 @@
     </button>
 
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <form class="form-inline my-2 my-lg-0">
+      <form class="form-inline my-2 my-lg-0" @submit.prevent="submit">
         <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" v-model="internalQueryText" @keyup.enter="submit">
-        <button class="btn btn-outline-success my-2 my-sm-0" type="submit" @click="submit">Search</button>
+        <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
       </form>
     </div>
   </nav>
@@ -30,7 +30,7 @@ export default {
   },
   methods: {
     submit(value) {
-      this.$store.commit('search', this.$data.internalQueryText)
+      this.$store.dispatch('search', this.$data.internalQueryText)
     }
   }
 }
