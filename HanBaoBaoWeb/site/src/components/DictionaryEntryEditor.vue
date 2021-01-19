@@ -1,6 +1,6 @@
 <template>
-  <div class="container" v-if="entry">
-    <div class="row">
+  <div class="container card" v-if="entry">
+    <div class="row card-body">
       <div class="col">
         <form class="p-1 m-1" @submit.prevent="save">
           <h4>Edit entry</h4>
@@ -120,7 +120,8 @@ export default {
     async save() {
       //  console.log(this.entry)
       await this.$store.dispatch('write', Object.assign({}, this.$data.entry));
-      this.$router.push({ name: 'Search', params: { id: this.$data.entry.simplified }})
+      console.log(this.$route);
+      this.$router.push({ name: 'Search', params: { id: this.$store.state.searchQuery || this.$data.entry.simplified }})
     }
   },
   computed: {

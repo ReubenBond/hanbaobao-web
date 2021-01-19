@@ -9,5 +9,8 @@ export default {
                 changeOrigin: true
             }
         }
+    },
+    build: {
+        outDir: '../wwwroot'
     }
 }

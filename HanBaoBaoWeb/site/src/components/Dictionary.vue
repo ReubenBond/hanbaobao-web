@@ -1,14 +1,14 @@
 <template>
   <div>
-    <div class="m-2">
-        <div class="container" v-if="!isSearching">
+    <div class="my-2 mx-2-sm">
+        <div class="container-sm" v-if="!isSearching">
         <EntriesContainer :entries="searchResults" />
         </div>
     </div>
-    <div class="w-100 h-100 m-5" v-if="isSearching">
+    <div class="m-5" v-if="isSearching">
         <h2 class="text-muted searching-text align-middle">Searching...</h2>
     </div>
-    <div class="w-100 h-100 m-5" v-if="noResults">
+    <div class="m-5" v-if="noResults">
         <h2 class="text-muted searching-text align-middle">No results found</h2>
     </div>
   </div>
@@ -32,12 +32,11 @@ export default {
       },
       noResults() {
         var state = this.$store.state;
-        return !state.isSearching && state.searchQuery && state.searchResults !== null && state.searchResults.length === 0;
+        return !state.isSearching && state.searchQuery && (!state.searchResults || state.searchResults.length === 0)
       }
   }
 }
 </script>
-
 
 <style scoped>
 .searching-text {

@@ -17,12 +17,12 @@ namespace DictionaryApp
 
     /// <summary>
     /// This grain demonstrates a simple way to throttle a given user (identified by some key, in this case, their IP address is the primary key of the grain)
-    /// It uses a call filter to maintain a count of recent calls and throttles if they exceed a score of 20. The score decays by 1 every 5 seconds.
+    /// It uses a call filter to maintain a count of recent calls and throttles if they exceed a score of 20. The score decays by 1 every 5 secondss
     /// </summary>
     internal class UserAgentGrain : Grain, IUserAgentGrain, IIncomingGrainCallFilter
     {
         private const int DecayPeriod = 5;
-        private const int ThrottleThreshold = 20;
+        private const int ThrottleThreshold = 3;
         private int _callCount;
         private Stopwatch _timeSinceLastCall = new Stopwatch();
         private readonly IGrainFactory _grainFactory;

@@ -1,5 +1,7 @@
-robocopy 'C:\dev\orleans\Artifacts\Debug\' 'packages' /MIR
-docker build . -t reuben.azurecr.io/dictionary-app &&
-docker push reuben.azurecr.io/dictionary-app &&
+pushd HanBaoBaoWeb/site
+vite build --config ./vite.config.js --emptyOutDir &&
+popd
+docker build . -t reuben.azurecr.io/hanbaobao &&
+docker push reuben.azurecr.io/hanbaobao &&
 kubectl apply -f ./deployment.yaml &&
-kubectl rollout restart deployment/dictionary-app
+kubectl rollout restart deployment/hanbaobao

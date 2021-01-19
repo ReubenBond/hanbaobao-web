@@ -1,5 +1,5 @@
 <template>
-  <div class="container">
+  <div class="container-sm">
     <div class="row" v-for="entry in entries" :key="entry.id">
         <DictionaryEntryDisplayCard :entry="entry" v-show="!entry.editing" />
     </div>

@@ -6,9 +6,9 @@ WORKDIR /app
 FROM mcr.microsoft.com/dotnet/sdk:5.0-buster-slim AS build
 WORKDIR /src
 COPY . .
-RUN dotnet publish "./DictionaryApp/DictionaryApp.csproj" -c Release -r linux-x64 -o /app/publish
+RUN dotnet publish "./HanBaoBaoWeb/HanBaoBaoWeb.csproj" -c Release -r linux-x64 -o /app/publish
 
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
-ENTRYPOINT ["dotnet", "DictionaryApp.dll"]
+ENTRYPOINT ["dotnet", "HanBaoBaoWeb.dll"]

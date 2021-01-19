@@ -32,14 +32,16 @@ namespace DictionaryApp
             // If there is no state saved for this entry yet, load the state from the reference dictionary and store it.
             if (_state.State?.Definition is null)
             {
+                // Find the definiton from the reference data, using this grain's id to look it up
                 var headword = this.GetPrimaryKeyString();
                 var result = await _referenceDataService.QueryByHeadwordAsync(headword);
 
                 if (result is { Count: > 0 } && result.FirstOrDefault() is TermDefinition definition)
                 {
-                    // Store the new state for next time
                     _state.State.Definition = definition;
-                    await _state.WriteStateAsync();
+
+                    // Write the state but don't wait for completion. If it fails, we will write it next time. 
+                    _state.WriteStateAsync().Ignore();
                 }
             }
         }

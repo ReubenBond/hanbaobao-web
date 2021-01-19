@@ -1,15 +1,16 @@
 <template>
-  <div class="container entry-card m-1 p-1 card">
+  <div class="container-sm entry-card my-1 mx-1-md p-1 card">
     <div class="row card-body">
-      <div class="col-2 card-title">
+      <div class="col-4 col-sm-2 card-title">
         <div class="m-1">
           <h1 class="">{{ entry.simplified }} </h1>
           <h6 class="text-muted">{{ convertPinyin(entry.pinyin) }}</h6>
         </div>
       </div>
-      <div class="col-9">
+      <div class="col-8 col-sm-10">
         <p>
           {{ entry.definition }}
+          <small><router-link class="text-muted" :to="{ name: 'Editor', params: { id: entry.simplified } }">[edit]</router-link></small>
         </p>
         <p v-if="entry.notes"> 
           <small><mark>NOTE</mark>: {{ entry.notes}}</small>
@@ -25,8 +26,7 @@
           <span class="badge m-1 topic-badge" v-if="entry.topic && entry.parentTopic">{{ entry.parentTopic }} > {{ entry.topic }}</span>
         </div>
       </div>
-      <div class="col-1">
-        <router-link class="btn btn-light" :to="{ name: 'Editor', params: { id: entry.simplified } }">✏</router-link>
+      <div class="float-right d-inline">
       </div>
     </div>
   </div>
@@ -73,7 +73,7 @@ export default {
 
 <style scoped>
 .entry-card {
-  background: #fafafa;
+  background: #fff9c4;
 }
 
 .badge {

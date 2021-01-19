@@ -1,11 +1,11 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
 
 import SearchBox from '../components/SearchBox.vue'
 import Dictionary from '../components/Dictionary.vue'
 import DictionaryEntryEditor from '../components/DictionaryEntryEditor.vue'
 
 export default createRouter({
-    history: createWebHistory(),
+    history: createWebHashHistory(),
     routes: [ {
         name: 'Home',
         path: '/',

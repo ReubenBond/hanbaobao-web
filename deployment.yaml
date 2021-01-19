@@ -1,35 +1,40 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dictionary-app
+  name: hanbaobao
   labels:
-    serviceId: dictionary-app
+    app: hanbaobao
 spec:
   selector:
     matchLabels:
-      serviceId: dictionary-app
+      app: hanbaobao
   replicas: 3
   template:
     metadata:
       labels:
+        app: hanbaobao
+
         # The serviceId label is used to identify the service to Orleans
-        serviceId: dictionary-app
+        orleans/serviceId: hanbaobao
 
         # The clusterId label is used to identify an instance of a cluster to Orleans.
         # Typically, this will be the same value as serviceId or any fixed value.
         # In cases where you are not using rolling deployments (for example, blue/green deployments),
         # this value can allow for distinct clusters which do not communicate directly with each others,
         # but which still share the same storage and other resources.
-        clusterId: dictionary-app
+        orleans/clusterId: hanbaobao
     spec:
       containers:
         - name: main
-          image: reuben.azurecr.io/dictionary-app
+          image: reuben.azurecr.io/hanbaobao
           imagePullPolicy: Always
           ports:
           # Define the ports which Orleans uses
           - containerPort: 11111
           - containerPort: 30000
+          # Define the ASP.NET Core ports
+          - containerPort: 80
+          - containerPort: 443
           env:
           # The Azure Storage connection string for clustering is injected as an environment variable
           # It must be created separately using a command such as:
@@ -43,11 +48,11 @@ spec:
           - name: ORLEANS_SERVICE_ID
             valueFrom:
               fieldRef:
-                fieldPath: metadata.labels['serviceId']
+                fieldPath: metadata.labels['orleans/serviceId']
           - name: ORLEANS_CLUSTER_ID
             valueFrom:
               fieldRef:
-                fieldPath: metadata.labels['clusterId']
+                fieldPath: metadata.labels['orleans/clusterId']
           - name: POD_NAMESPACE
             valueFrom:
               fieldRef:
@@ -72,3 +77,40 @@ spec:
     rollingUpdate:
       maxUnavailable: 0
       maxSurge: 1
+
+---
+# In order to be able to access the service from outside the cluster, we will need to add a Service object
+apiVersion: v1
+kind: Service
+metadata:
+  name: hanbaobao
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+  selector:
+    app: hanbaobao
+
+# For RBAC-enabled clusters, the Kubernetes service account for the pods may also need to be granted the required access:
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: pod-reader
+rules:
+- apiGroups: [ "" ]
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: pod-reader-binding
+subjects:
+- kind: ServiceAccount
+  name: default
+  apiGroup: ''
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: ''
