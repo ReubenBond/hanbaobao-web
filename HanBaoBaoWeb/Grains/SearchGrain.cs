@@ -1,4 +1,5 @@
 ﻿using DictionaryApp;
+using Microsoft.Extensions.Logging;
 using Orleans;
 using System;
 using System.Collections.Generic;
@@ -20,7 +21,9 @@ namespace HanBaoBaoWeb
         private List<TermDefinition> _cachedResult;
         private Stopwatch _timeSinceLastUpdate = new Stopwatch();
 
-        public SearchGrain(ReferenceDataService searchDatabase, IGrainFactory grainFactory)
+        public SearchGrain(
+            ReferenceDataService searchDatabase,
+            IGrainFactory grainFactory)
         {
             _searchDatabase = searchDatabase;
             _grainFactory = grainFactory;

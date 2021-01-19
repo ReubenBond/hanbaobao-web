@@ -26,7 +26,7 @@
         </div>
       </div>
       <div class="col-1">
-        <button class="btn btn-light" @click="$store.dispatch('addOrEdit', entry)">✏</button>
+        <router-link class="btn btn-light" :to="{ name: 'Editor', params: { id: entry.simplified } }">✏</router-link>
       </div>
     </div>
   </div>
@@ -36,7 +36,7 @@
 import { PinyinConverter } from '../pinyin_converter.js' 
 
 export default {
-  name: 'DictionaryEntryDisplay',
+  name: 'DictionaryEntryDisplayCard',
   props: {
     entry: {}
   },

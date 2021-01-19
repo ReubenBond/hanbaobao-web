@@ -89,7 +89,7 @@ namespace DictionaryApp
         private List<string> QueryHeadwordByHeadword(string query)
         {
             using var connection = new SqliteConnection(_connectionString);
-            using var cmd = new SqliteCommand("select simplified from dictionary where simplified=$term or traditional=$term order by " + Ordering, connection);
+            using var cmd = new SqliteCommand("select distinct simplified from dictionary where simplified=$term or traditional=$term order by " + Ordering, connection);
             connection.Open();
             cmd.Parameters.AddWithValue("$term", query);
             var reader = cmd.ExecuteReader(System.Data.CommandBehavior.CloseConnection);
@@ -99,7 +99,7 @@ namespace DictionaryApp
         private List<string> QueryHeadwordByDefinition(string query)
         {
             using var connection = new SqliteConnection(_connectionString);
-            using var cmd = new SqliteCommand("select simplified from dictionary where rowid in (select rowid from fts_definition where fts_definition match $query) order by " + Ordering, connection);
+            using var cmd = new SqliteCommand("select distinct simplified from dictionary where rowid in (select rowid from fts_definition where fts_definition match $query) order by " + Ordering, connection);
             connection.Open();
             cmd.Parameters.AddWithValue("$query", query);
 

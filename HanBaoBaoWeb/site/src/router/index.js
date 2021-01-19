@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
+import SearchBox from '../components/SearchBox.vue'
 import Dictionary from '../components/Dictionary.vue'
 import DictionaryEntryEditor from '../components/DictionaryEntryEditor.vue'
 
@@ -8,10 +9,23 @@ export default createRouter({
     routes: [ {
         name: 'Home',
         path: '/',
-        component: Dictionary
+        components: {
+            default: Dictionary,
+            nav: SearchBox
+        }
+    }, {
+        name: 'Search',
+        path: '/search/:id',
+        components: {
+            default: Dictionary,
+            nav: SearchBox
+        }
     }, {
         name: 'Editor',
-        path: '/editor',
-        component: DictionaryEntryEditor 
+        path: '/entry/:id/edit',
+        components: {
+            default: DictionaryEntryEditor,
+            nav: SearchBox
+        }
     }]
 });

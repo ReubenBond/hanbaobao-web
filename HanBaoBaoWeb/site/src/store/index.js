@@ -4,11 +4,15 @@ import axios from 'axios'
 
 export default createStore({
     state: {
-        searchQuery: '你好',
+        searchQuery: '',
         searchResults: [],
-        editingEntry: {}
+        editingEntry: {},
+        isSearching: false,
     },
     mutations: {
+        setIsSearching(state, isSearching) {
+            state.isSearching = isSearching;
+        },
         setSearchQuery(state, query) {
             state.searchQuery = query
         },
@@ -33,8 +37,10 @@ export default createStore({
         async search(context, query) {
             context.commit('setSearchQuery', query)
             context.commit('setSearchResults', [])
+            context.commit('setIsSearching', true)
             var results = await axios.get('/api/search?query=' + query);
             context.commit('setSearchResults', results.data);
+            context.commit('setIsSearching', false)
 
         },
         addOrEdit(context, entry) {
@@ -43,6 +49,9 @@ export default createStore({
         async write(context, entry) {
             var result = await axios.post('/api/entry?entry=' + entry.simplified, entry)
             await this.dispatch('addOrEdit', null)
+        },
+        async getById(context, id) {
+            return (await axios.get('/api/entry?id=' + id)).data;
         }
     },
     getters: {
