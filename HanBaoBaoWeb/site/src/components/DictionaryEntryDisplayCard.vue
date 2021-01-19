@@ -73,7 +73,7 @@ export default {
 
 <style scoped>
 .entry-card {
-  background: #fff9c4;
+  background: #f7f7d6;
 }
 
 .badge {

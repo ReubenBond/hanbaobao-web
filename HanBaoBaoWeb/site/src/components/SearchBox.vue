@@ -4,8 +4,7 @@
       <div class="col-12">
         <h1 style="text-align: center" class="m-3 banner">
           <img class="logo" src="../assets/logo.png"/>
-          <span class="banner">
-            HànBǎoBāo<br class="d-md-none">
+          <span class="banner">&nbsp;HànBǎoBāo<br class="d-md-none">
             <small class="text-muted subtitle"> Chinese-English dictionary</small>
           </span>
           </h1>
