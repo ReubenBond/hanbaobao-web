@@ -28,11 +28,10 @@ namespace HanBaoBao
                 return BadRequest("Provided an empty query");
             }
 
-            #region What if we wanted to implement throttling? 
-            // We can implement and anti-abuse system by creating a grain for each user, keyed by the IP.
-            // All calls made by the user go through that grain. The grain monitors its own request rate.
-            // If some abuse is detected, the grain sets a "banned" flag on its state, and an administrator
-            // is notified. The administrator can review the user's behavior and decide to unban them.
+#if true
+            // We can implement a throttling system by creating a grain for each user, keyed by the IP.
+            // All calls made by the user go through that grain. The grain monitors its own request rate
+            // and denies requests if they exceed some defined request rate.
             var clientId = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
             var userAgentGrain = _grainFactory.GetGrain<IUserAgentGrain>(clientId);
             try
@@ -42,15 +41,14 @@ namespace HanBaoBao
             }
             catch (ThrottlingException exc)
             {
-                return this.StatusCode(429, exc.Message);
+                return StatusCode(429, exc.Message);
             }
-            #endregion
-            /*
+#else
             // Get a grain identified by the query string and ask for its search results
             var searchGrain = _grainFactory.GetGrain<ISearchGrain>(query);
             var results = await searchGrain.GetSearchResultsAsync();
             return Ok(results);
-            */
+#endif
         }
     }
     
