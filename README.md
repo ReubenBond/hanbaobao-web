@@ -16,7 +16,7 @@ The Web app sends HTTP requests which are handled by ASP.NET Core MVC controller
 
 The application can be run locally from the *HanBaoBaoWeb* folder by executing:
 
-``` ps
+``` PowerShell
 dotnet run -c Release
 ```
 
@@ -31,7 +31,7 @@ The app can also be deployed to Kubernetes. The important file is `deployment.ya
 
 The [`provision.ps1`](./provision.ps1) script attempts to automate these steps, with some required names defined at the top of the script:
 
-``` ps
+``` PowerShell
 # Choose some resource names. Note that some of these are globally unique across all of Azure, so you will need to change them
 $resourceGroup = "hanbaobao"
 $location = "westus"
@@ -228,7 +228,7 @@ With the `deployment.yaml` file created, now we need to build and deploy the app
 
 The prerequisites for this are *NPM* and *Docker*. With those installed, open a terminal to the `site` directory and execute:
 
-``` ps
+``` PowerShell
 npm install
 npm run build
 ```
@@ -236,7 +236,7 @@ npm run build
 With the Web app published into the `HanBaoBaoWeb/wwwroot` directory, move back to the root directory of the repository, then execute the following to build the container image and push it to ACR.
 Note that you will need to substitute the variable names as you did when provisioning the resources.
 
-``` ps
+``` PowerShell
 $resourceGroup = "hanbaobao"
 $containerRegistry = "hanbaobaoacr"
 
@@ -253,13 +253,13 @@ The last command executed restarts the deployment. That is only necessary if you
 
 If all of the previous steps succeeded, then we can watch the changes in the active pods:
 
-``` ps
+``` PowerShell
 kubectl get pods --watch
 ```
 
 If no errors were encountered, then the pods should all enter the *Running* state, at which point we can find out what IP address was provisioned for our service by querying the `hanbaobao` service object which we created:
 
-``` ps
+``` PowerShell 
 kubectl get service hanbaobao
 ```
 
