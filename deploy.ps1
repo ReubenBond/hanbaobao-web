@@ -1,6 +1,5 @@
 $resourceGroup = "hanbaobao"
 $location = "westus"
-$storageAccount = "hanbaobao1"
 $clusterName = "hanbaobao"
 $containerRegistry = "hanbaobaoacr"
 

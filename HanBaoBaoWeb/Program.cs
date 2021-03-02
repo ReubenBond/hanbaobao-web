@@ -20,9 +20,12 @@ await Host.CreateDefaultBuilder(args)
             siloBuilder.UseKubernetesHosting();
 
             // Use Redis for clustering & persistence
-            var redisConnectionString = $"{Environment.GetEnvironmentVariable("REDIS")}:6379";
-            siloBuilder.UseRedisClustering(options => options.ConnectionString = redisConnectionString); 
-            siloBuilder.AddRedisGrainStorage("definitions", options => options.ConnectionString = redisConnectionString); 
+            var redisAddress = $"{Environment.GetEnvironmentVariable("REDIS")}:6379";
+            siloBuilder.UseRedisClustering(options =>
+                options.ConnectionString = redisAddress); 
+            siloBuilder.AddRedisGrainStorage(
+                "definitions",
+                options => options.ConnectionString = redisAddress); 
         }
     })
     .ConfigureWebHostDefaults(webBuilder =>
