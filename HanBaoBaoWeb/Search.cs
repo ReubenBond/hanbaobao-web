@@ -67,7 +67,7 @@ namespace HanBaoBao
         public async Task<List<TermDefinition>> GetSearchResultsAsync()
         {
             // If the query has already been performed, return the result from cache.
-            if (_cachedResult is object && _timeSinceLastUpdate.Elapsed < TimeSpan.FromSeconds(10))
+            if (_cachedResult is object && _timeSinceLastUpdate.Elapsed < TimeSpan.FromMinutes(10))
             {
                 return _cachedResult;
             }
