@@ -76,11 +76,11 @@ namespace HanBaoBao
             var query = this.GetPrimaryKeyString();
 
             // Search for possible matches from the full-text-search database
-            var headwords = await _searchDatabase.QueryHeadwordsByAnyAsync(query);
+            var headwords = _searchDatabase.QueryHeadwordsByAnyAsync(query);
 
             // Fan out and get all of the definitions for each matching headword
             var tasks = new List<Task<TermDefinition>>();
-            foreach (var headword in headwords.Take(25))
+            foreach (var headword in headwords.Take(15))
             {
                 var entryGrain = _grainFactory.GetGrain<IDictionaryEntryGrain>(headword);
                 tasks.Add(entryGrain.GetDefinitionAsync());

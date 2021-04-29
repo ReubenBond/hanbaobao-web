@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace HanBaoBaoWeb
 {
+    // NOTE: See the PR here: https://github.com/dotnet/orleans/pull/6853
     public abstract class ActivityPropagationGrainCallFilter
     {
         protected const string TraceParentHeaderName = "traceparent";
@@ -19,7 +20,6 @@ namespace HanBaoBaoWeb
 
         protected static async Task ProcessNewActivity(IGrainCallContext context, ActivityKind activityKind, ActivityContext activityContext)
         {
-
             Activity activity = default;
             try
             {
@@ -34,6 +34,7 @@ namespace HanBaoBaoWeb
                     RequestContext.Set(TraceParentHeaderName, activity.Id);
                 }
 
+                // This calls the next filter, and eventually the grain method
                 await context.Invoke();
             }
             catch (Exception e)
@@ -51,13 +52,13 @@ namespace HanBaoBaoWeb
             }
             finally
             {
+                // Activity complete
                 activity?.Dispose();
             }
         }
 
         private static Activity StartActivity(IGrainCallContext context, ActivityKind activityKind, ActivityContext activityContext)
         {
-            Activity activity;
             ActivityTagsCollection tags = null;
             var target = context.Grain.GetPrimaryKey(out var grainIdStr);
 
@@ -72,7 +73,8 @@ namespace HanBaoBaoWeb
                             {"net.peer.name", context.Grain?.ToString() + "/" + grainIdStr ?? target.ToString()},
                         };
             }
-            activity = activitySource.StartActivity(activityName, activityKind, activityContext, tags);
+
+            var activity = activitySource.StartActivity(activityName, activityKind, activityContext, tags);
             return activity;
         }
     }
@@ -83,10 +85,12 @@ namespace HanBaoBaoWeb
         {
             if (Activity.Current != null)
             {
-                return ProcessCurrentActivity(context); // Copy existing activity to RequestContext
+                // Copy existing activity to RequestContext
+                return ProcessCurrentActivity(context);
             }
 
-            return ProcessNewActivity(context, ActivityKind.Client, new ActivityContext()); // Create new activity
+             // Create new activity and copy to RequestContext
+            return ProcessNewActivity(context, ActivityKind.Client, new ActivityContext());
         }
 
         private static Task ProcessCurrentActivity(IOutgoingGrainCallContext context)
@@ -111,7 +115,7 @@ namespace HanBaoBaoWeb
     {
         public Task Invoke(IIncomingGrainCallContext context)
         {
-            // Create activity from context directly
+            // Read trace context from RequestContext
             var traceParent = RequestContext.Get(TraceParentHeaderName) as string;
             var traceState = RequestContext.Get(TraceStateHeaderName) as string;
             var parentContext = new ActivityContext();
@@ -121,6 +125,7 @@ namespace HanBaoBaoWeb
                 parentContext = ActivityContext.Parse(traceParent, traceState);
             }
 
+            // Start the activity, invoke the request, and stop the activity when done
             return ProcessNewActivity(context, ActivityKind.Server, parentContext);
         }
     }

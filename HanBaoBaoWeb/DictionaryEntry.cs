@@ -86,14 +86,14 @@ namespace HanBaoBao
             _referenceDataService = referenceDataService;
         }
 
-        public override async Task OnActivateAsync()
+        public override Task OnActivateAsync()
         {
             // If there is no state saved for this entry yet, load the state from the reference dictionary and store it.
             if (_state.State?.Definition is null)
             {
                 // Find the definiton from the reference data, using this grain's id to look it up
                 var headword = this.GetPrimaryKeyString();
-                var result = await _referenceDataService.QueryByHeadwordAsync(headword);
+                var result = _referenceDataService.QueryByHeadwordAsync(headword);
 
                 if (result is { Count: > 0 } && result.FirstOrDefault() is TermDefinition definition)
                 {
@@ -103,6 +103,8 @@ namespace HanBaoBao
                     _state.WriteStateAsync().Ignore();
                 }
             }
+
+            return Task.CompletedTask;
         }
 
         public async Task UpdateDefinitionAsync(TermDefinition value)

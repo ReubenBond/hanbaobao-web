@@ -14,7 +14,6 @@ namespace HanBaoBao
     public class ReferenceDataService
     {
         private readonly string _connectionString;
-        private readonly TaskScheduler _scheduler;
         private const string Ordering = "hsk_level not null desc, hsk_level asc, part_of_speech not null desc, frequency desc";
 
         public ReferenceDataService()
@@ -26,64 +25,38 @@ namespace HanBaoBao
             };
 
             _connectionString = builder.ToString();
-            _scheduler = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default, maxConcurrencyLevel: 1).ExclusiveScheduler;
         }
 
-        public Task<List<string>> QueryHeadwordsByAnyAsync(string query)
+        public List<string> QueryHeadwordsByAnyAsync(string query)
         {
-            // Why are we scheduling the database calls on a specific TaskScheduler?
-            // The answer is centered around SQLite being a synchronous library and performs blocking IO operations.
-            // There are asynchronous overloads, but they call the synchronous methods internally.
-            // By running many blocking IO operations on the .NET Thread Pool in parallel, we can starve the pool and cause severe performance
-            // degradation, which can result in a denial of service.
-            // A better approach for handling a synchronous library like this would be to have a dedicated pool of threads, rather than borrowing
-            // ThreadPool threads like this implementation does.
-            return Task.Factory.StartNew(() =>
+            if (IsProbablyCjk(query))
             {
-                if (IsProbablyCjk(query))
-                {
-                    return QueryHeadwordByHeadword(query);
-                }
+                return QueryHeadwordByHeadword(query);
+            }
 
-                return QueryHeadwordByDefinition(query);
-            },
-            CancellationToken.None,
-            TaskCreationOptions.RunContinuationsAsynchronously,
-            _scheduler);  
+            return QueryHeadwordByDefinition(query);
         }
 
-        public Task<List<TermDefinition>> QueryByAnyAsync(string query)
+        public List<TermDefinition> QueryByAnyAsync(string query)
         {
             if (IsProbablyCjk(query))
             {
                 return QueryByHeadwordAsync(query);
             }
 
-            return Task.Factory.StartNew(() =>
-            {
-                return QueryByDefinition(query);
-            },
-            CancellationToken.None,
-            TaskCreationOptions.RunContinuationsAsynchronously,
-            _scheduler);  
+            return QueryByDefinition(query);
         }
 
-        public Task<List<TermDefinition>> QueryByHeadwordAsync(string query)
+        public List<TermDefinition> QueryByHeadwordAsync(string query)
         {
-            return Task.Factory.StartNew(() =>
-            {
-                using var connection = new SqliteConnection(_connectionString);
-                connection.Open();
-                var cmd = new SqliteCommand("select * from dictionary where simplified=$term or traditional=$term order by " + Ordering, connection);
-                cmd.Parameters.AddWithValue("$term", query);
-                cmd.Prepare();
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            var cmd = new SqliteCommand("select * from dictionary where simplified=$term or traditional=$term order by " + Ordering, connection);
+            cmd.Parameters.AddWithValue("$term", query);
+            cmd.Prepare();
 
-                var reader = cmd.ExecuteReader();
-                return ReadAllAsTermDefinition(reader);
-            },
-            CancellationToken.None,
-            TaskCreationOptions.RunContinuationsAsynchronously,
-            _scheduler);  
+            var reader = cmd.ExecuteReader();
+            return ReadAllAsTermDefinition(reader);
         }
 
         private List<string> QueryHeadwordByHeadword(string query)
