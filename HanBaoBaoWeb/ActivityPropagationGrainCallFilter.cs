@@ -39,7 +39,7 @@ namespace HanBaoBaoWeb
             }
             catch (Exception e)
             {
-                if (activity is not null && activity.IsAllDataRequested)
+                if (activity is { IsAllDataRequested: true })
                 {
                     // exception attributes from https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/exceptions.md
                     activity.SetTag("exception.type", e.GetType());
@@ -81,16 +81,18 @@ namespace HanBaoBaoWeb
 
     public class ActivityPropagationOutgoingGrainCallFilter : ActivityPropagationGrainCallFilter, IOutgoingGrainCallFilter
     {
-        public Task Invoke(IOutgoingGrainCallContext context)
+        public async Task Invoke(IOutgoingGrainCallContext context)
         {
             if (Activity.Current != null)
             {
                 // Copy existing activity to RequestContext
-                return ProcessCurrentActivity(context);
+                await ProcessCurrentActivity(context);
             }
-
-             // Create new activity and copy to RequestContext
-            return ProcessNewActivity(context, ActivityKind.Client, new ActivityContext());
+            else
+            {
+                // Create new activity and copy to RequestContext
+                await ProcessNewActivity(context, ActivityKind.Client, new ActivityContext());
+            }
         }
 
         private static Task ProcessCurrentActivity(IOutgoingGrainCallContext context)
